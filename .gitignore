@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+
+
+# downloaded modules
+modcache/
+
+# env file
+.env

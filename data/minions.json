@@ -1,0 +1,19 @@
+{
+  "Harvest Golem": {
+    "name": "Harvest Golem",
+    "damage": 2,
+    "hp": 3,
+    "type": "Mech",
+    "Deathrattles": [
+      "GolemDeathrattle"
+    ]
+  },
+  "Glyph Guardian": {
+    "name": "Glyph Guardian",
+    "damage": 2,
+    "hp": 4,
+    "type": "Dragon",
+    "PreHitEffect": "DoubleDamageEffect",
+    "Deathrattles": []
+  }
+}
