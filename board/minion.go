@@ -8,7 +8,10 @@ type Minion struct {
 	Name             string
 	Damage           int
 	HP               int
+	IsTaunt          bool
+	IsDivineShield   bool
 	Type             string
+	IsLegendary      bool
 	PreHitEffect     func(Board, uint8) Board
 	PreReceiveEffect func(Board, uint8) Board
 	PostHitEffect    func(Board, uint8) Board
@@ -24,5 +27,5 @@ func (m Minion) IsAlive() bool {
 }
 
 func (m Minion) IsDead() bool {
-	return m.HP < 0
+	return !m.IsAlive()
 }

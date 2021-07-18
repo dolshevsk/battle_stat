@@ -2,8 +2,8 @@ package main
 
 import (
 	"battle_stat/data"
+	"battle_stat/engine"
 	"battle_stat/player"
-	"fmt"
 	"log"
 )
 
@@ -29,6 +29,5 @@ func main() {
 		log.Fatal("Can't create 'opponent' Board", err)
 	}
 
-	fmt.Println("OKAY", you, opponent)
-	//engine.RunBattle(you, opponent)
+	engine.RunCombat(you, opponent)
 }

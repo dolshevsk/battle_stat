@@ -8,18 +8,14 @@ type Hero struct {
 type Player struct {
 	Signature string
 	Hero      Hero
-	Board     board.Board
+	Minions   []board.Minion
 }
 
 func NewPlayer(signature string, minions []board.Minion) (Player, error) {
-	playerBoard, err := board.NewBoard(minions)
-	if err != nil {
-		return Player{}, err
-	}
 	player := Player{
 		Signature: signature,
 		Hero:      Hero{},
-		Board:     playerBoard,
+		Minions:   minions,
 	}
 	return player, nil
 }

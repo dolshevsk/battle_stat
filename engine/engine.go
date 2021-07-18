@@ -2,6 +2,7 @@ package engine
 
 import (
 	"battle_stat/board"
+	"battle_stat/player"
 	"fmt"
 	"math/rand"
 	"time"
@@ -13,133 +14,118 @@ const (
 	Lose = "Lose"
 )
 
-func reverseResult(result string) string {
-	if result == Win {
-		return Lose
-	} else if result == Lose {
-		return Win
-	} else {
-		return Draw
-	}
-}
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func RunBattle(you, opponent game.Board) {
-	fmt.Println("Your Board:", you, "\nEnemy Board:", opponent)
+func RunCombat(you, opp player.Player) {
+	fmt.Println("Your Board:", you, "\nEnemy Board:", opp)
 
 	var result string
-	if len(you) > len(opponent) {
-		result = fight(you, opponent)
-	} else if len(you) < len(opponent) {
-		result = reverseResult(fight(opponent, you))
-	} else {
-		// random choice
-		r := rand.Intn(2)
-		if r == 0 {
-			result = fight(you, opponent)
-		} else {
-			result = reverseResult(fight(opponent, you))
-		}
-	}
+	youBoard, _ := board.NewBoard(you.Minions)
+	oppBoard, _ := board.NewBoard(opp.Minions)
+	Fight(youBoard, oppBoard)
 	fmt.Printf("Result: %v\n", result)
 }
 
-func fight(you, opponent game.Board) string {
+func Fight(you, opp board.Board) string {
 	var turn uint
-	for len(you) != 0 && len(opponent) != 0 {
+	isMyTurn := checkForMyTurn(you, opp)
+	for len(you.Minions) != 0 && len(opp.Minions) != 0 {
 		turn += 1
-		you, opponent = makeTurn(you, opponent, turn)
+		fmt.Printf("\nTURN:%v\n", turn)
+		logCombat(you, opp)
+		you, opp = MakeTurn(you, opp, isMyTurn)
+		logCombat(you, opp)
+		isMyTurn = !isMyTurn
 	}
 	fmt.Printf("Battle finished in %v turns\n", turn)
-	if len(you) > len(opponent) {
+	if len(you.Minions) > len(opp.Minions) {
 		return Win
-	} else if len(you) < len(opponent) {
+	} else if len(you.Minions) < len(opp.Minions) {
 		return Lose
 	} else {
 		return Draw
 	}
 }
 
-func makeTurn(you, opponent game.Board, turn uint) (game.Board, game.Board) {
-	//var attacker, receiver board.Minion
-	fmt.Printf("\nTURN:%v\n", turn)
-	fmt.Println("----------------------")
-	fmt.Println(opponent)
-	fmt.Println(you)
-	fmt.Println("----------------------")
-	boardA, boardR := chooseAttackerReceiver(you, opponent, turn)
-	boardA, boardR = attack(boardR, boardA, 0, 0)
-	fmt.Println("----------------------")
-	fmt.Println(boardR)
-	fmt.Println(boardA)
-	fmt.Println("----------------------")
-	return boardA, boardR
-}
-
-func chooseAttackerReceiver(you, opponent game.Board, turn uint) (game.Board, game.Board) {
-	var boardA, boardR game.Board
-	if turn%2 == 1 {
-		boardA, boardR = you, opponent
+func checkForMyTurn(you, opp board.Board) bool {
+	if len(you.Minions) > len(opp.Minions) {
+		return true
+	} else if len(you.Minions) < len(opp.Minions) {
+		return false
 	} else {
-		boardR, boardA = opponent, you
+		// random choice
+		r := rand.Intn(2)
+		if r == 0 {
+			return true
+		} else {
+			return false
+		}
 	}
-	return boardA, boardR
 }
 
-func attack(boardA, boardR game.Board, attackerIndex, receiverIndex uint8) (game.Board, game.Board) {
+func MakeTurn(you, opp board.Board, isMyTurn bool) (board.Board, board.Board) {
+	//var attacker, receiver board.Minion
+	if isMyTurn {
+		you, opp = makeAttack(you, opp, you.AttackPointer, 0)
+	} else {
+		opp, you = makeAttack(opp, you, opp.AttackPointer, 0)
+	}
+	return you, opp
+}
+
+func makeAttack(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) (board.Board, board.Board) {
 	// Pre phase
-	boardA = preHit(boardA, attackerIndex)
-	boardR = preReceive(boardR, receiverIndex)
+	bAttack = preHit(bAttack, attackerIndex)
+	bReceive = preReceive(bReceive, receiverIndex)
 	// Hit phase
-	fmt.Printf("%v hit %v\n", boardA[attackerIndex], boardR[receiverIndex])
-	hit(boardA, boardR, attackerIndex, receiverIndex)
+	fmt.Printf("%v hit %v\n", bAttack.Minions[attackerIndex], bReceive.Minions[receiverIndex])
+	hit(bAttack, bReceive, attackerIndex, receiverIndex)
 	// Post phase
-	boardA, boardR = postHit(boardA, boardR, attackerIndex, receiverIndex)
-	fmt.Printf("%v\n%v\n", boardR, boardA)
-	return boardA, boardR
+	bAttack, bReceive = postHit(bAttack, bReceive, attackerIndex, receiverIndex)
+	fmt.Printf("%v\n%v\n", bReceive, bAttack)
+	return bAttack, bReceive
 }
 
-func preHit(board game.Board, attackerIndex uint8) game.Board {
-	attacker := board[attackerIndex]
+func preHit(board board.Board, attackerIndex uint8) board.Board {
+	attacker := board.Minions[attackerIndex]
 	if attacker.PreHitEffect == nil {
 		return board
 	}
 	return attacker.PreHitEffect(board, attackerIndex)
 }
 
-func preReceive(board game.Board, receiverIndex uint8) game.Board {
-	receiver := board[receiverIndex]
+func preReceive(board board.Board, receiverIndex uint8) board.Board {
+	receiver := board.Minions[receiverIndex]
 	if receiver.PreReceiveEffect == nil {
 		return board
 	}
 	return receiver.PreHitEffect(board, receiverIndex)
 }
 
-func hit(board1, board2 game.Board, attackerIndex, receiverIndex uint8) {
-	attacker, receiver := &board1[attackerIndex], &board2[receiverIndex]
+func hit(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) {
+	attacker, receiver := &bAttack.Minions[attackerIndex], &bReceive.Minions[receiverIndex]
 	receiver.HP -= attacker.Damage
 	attacker.HP -= receiver.Damage
 }
 
-func postHit(board1, board2 game.Board, attackerIndex, receiverIndex uint8) (game.Board, game.Board) {
-	attacker := &board1[attackerIndex]
+func postHit(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) (board.Board, board.Board) {
+	attacker := &bAttack.Minions[attackerIndex]
 	if attacker.IsDead() {
 		for _, deathrattle := range attacker.Deathrattles {
-			board1, board2 = deathrattle(board1, board2, attackerIndex)
+			bAttack, bReceive = deathrattle(bAttack, bReceive, attackerIndex)
 		}
 	}
 
-	receiver := &board2[receiverIndex]
+	receiver := &bReceive.Minions[receiverIndex]
 	if receiver.IsDead() {
 		for _, deathrattle := range receiver.Deathrattles {
-			board1, board2 = deathrattle(board1, board2, receiverIndex)
+			bAttack, bReceive = deathrattle(bAttack, bReceive, receiverIndex)
 		}
 	}
 
-	board1, board2 = game.Clean(board1), game.Clean(board2)
-
-	return board1, board2
+	bAttack.Clean()
+	bReceive.Clean()
+	return bAttack, bReceive
 }
