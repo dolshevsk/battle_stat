@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type AttackEffect func(Board, uint8) Board
+type AttackEffect func(Board, int8) Board
 
 var attackEffectsMap = map[string]AttackEffect{
 	"DoubleDamageEffect": DoubleDamageEffect,
@@ -22,7 +22,7 @@ func mapAttackEffects(name string) AttackEffect {
 	return effect
 }
 
-func DoubleDamageEffect(board Board, index uint8) Board {
+func DoubleDamageEffect(board Board, index int8) Board {
 	minion := &board.Minions[index]
 	minion.Damage *= 2
 	return board

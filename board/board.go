@@ -7,7 +7,7 @@ import (
 
 type Board struct {
 	Minions       []Minion
-	AttackPointer uint8
+	AttackPointer int8
 }
 
 func NewBoard(minions []Minion) (Board, error) {
@@ -30,12 +30,12 @@ func (b *Board) Clean() {
 	b.Minions = cleanedBoard
 }
 
-func (b *Board) Remove(index uint8) {
+func (b *Board) Remove(index int8) {
 	minions := append(b.Minions[:index], b.Minions[index+1:]...)
 	b.Minions = minions
 }
 
-func (b *Board) Insert(index uint8, minion Minion) {
+func (b *Board) Insert(index int8, minion Minion) {
 	minions := append(b.Minions[:index+1], b.Minions[index:]...)
 	minions[index] = minion
 	b.Minions = minions

@@ -8,12 +8,6 @@ import (
 	"time"
 )
 
-const (
-	Win  = "WIN"
-	Draw = "Draw"
-	Lose = "Lose"
-)
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -21,16 +15,18 @@ func init() {
 func RunCombat(you, opp player.Player) {
 	fmt.Println("Your Board:", you, "\nEnemy Board:", opp)
 
-	var result string
 	youBoard, _ := board.NewBoard(you.Minions)
 	oppBoard, _ := board.NewBoard(opp.Minions)
-	Fight(youBoard, oppBoard)
-	fmt.Printf("Result: %v\n", result)
+	result, damage, turn := chooseWhoFirstAndFight(youBoard, oppBoard)
+	fmt.Printf("Combat finished with result: %v; damage: %v; turns: %v.\n", result, damage, turn)
 }
 
-func Fight(you, opp board.Board) string {
-	var turn uint
+func chooseWhoFirstAndFight(you, opp board.Board) (result string, damage int8, turn int) {
 	isMyTurn := checkForMyTurn(you, opp)
+	return Fight(you, opp, isMyTurn)
+}
+
+func Fight(you, opp board.Board, isMyTurn bool) (result string, damage int8, turn int) {
 	for len(you.Minions) != 0 && len(opp.Minions) != 0 {
 		turn += 1
 		fmt.Printf("\nTURN:%v\n", turn)
@@ -39,14 +35,24 @@ func Fight(you, opp board.Board) string {
 		logCombat(you, opp)
 		isMyTurn = !isMyTurn
 	}
-	fmt.Printf("Battle finished in %v turns\n", turn)
 	if len(you.Minions) > len(opp.Minions) {
-		return Win
+		result = Win
+		damage = calculateBoardDamage(you)
 	} else if len(you.Minions) < len(opp.Minions) {
-		return Lose
+		result = Lose
+		damage = calculateBoardDamage(opp)
 	} else {
-		return Draw
+		result = Draw
+		damage = 0
 	}
+	return result, damage, turn
+}
+
+func calculateBoardDamage(board board.Board) (damage int8) {
+	for _, m := range board.Minions {
+		damage += m.Tier
+	}
+	return damage
 }
 
 func checkForMyTurn(you, opp board.Board) bool {
@@ -75,7 +81,7 @@ func MakeTurn(you, opp board.Board, isMyTurn bool) (board.Board, board.Board) {
 	return you, opp
 }
 
-func makeAttack(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) (board.Board, board.Board) {
+func makeAttack(bAttack, bReceive board.Board, attackerIndex, receiverIndex int8) (board.Board, board.Board) {
 	// Pre phase
 	bAttack = preHit(bAttack, attackerIndex)
 	bReceive = preReceive(bReceive, receiverIndex)
@@ -84,11 +90,10 @@ func makeAttack(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint
 	hit(bAttack, bReceive, attackerIndex, receiverIndex)
 	// Post phase
 	bAttack, bReceive = postHit(bAttack, bReceive, attackerIndex, receiverIndex)
-	fmt.Printf("%v\n%v\n", bReceive, bAttack)
 	return bAttack, bReceive
 }
 
-func preHit(board board.Board, attackerIndex uint8) board.Board {
+func preHit(board board.Board, attackerIndex int8) board.Board {
 	attacker := board.Minions[attackerIndex]
 	if attacker.PreHitEffect == nil {
 		return board
@@ -96,7 +101,7 @@ func preHit(board board.Board, attackerIndex uint8) board.Board {
 	return attacker.PreHitEffect(board, attackerIndex)
 }
 
-func preReceive(board board.Board, receiverIndex uint8) board.Board {
+func preReceive(board board.Board, receiverIndex int8) board.Board {
 	receiver := board.Minions[receiverIndex]
 	if receiver.PreReceiveEffect == nil {
 		return board
@@ -104,13 +109,13 @@ func preReceive(board board.Board, receiverIndex uint8) board.Board {
 	return receiver.PreHitEffect(board, receiverIndex)
 }
 
-func hit(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) {
+func hit(bAttack, bReceive board.Board, attackerIndex, receiverIndex int8) {
 	attacker, receiver := &bAttack.Minions[attackerIndex], &bReceive.Minions[receiverIndex]
 	receiver.HP -= attacker.Damage
 	attacker.HP -= receiver.Damage
 }
 
-func postHit(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) (board.Board, board.Board) {
+func postHit(bAttack, bReceive board.Board, attackerIndex, receiverIndex int8) (board.Board, board.Board) {
 	attacker := &bAttack.Minions[attackerIndex]
 	if attacker.IsDead() {
 		for _, deathrattle := range attacker.Deathrattles {
@@ -121,7 +126,7 @@ func postHit(bAttack, bReceive board.Board, attackerIndex, receiverIndex uint8) 
 	receiver := &bReceive.Minions[receiverIndex]
 	if receiver.IsDead() {
 		for _, deathrattle := range receiver.Deathrattles {
-			bAttack, bReceive = deathrattle(bAttack, bReceive, receiverIndex)
+			bReceive, bAttack = deathrattle(bReceive, bAttack, receiverIndex)
 		}
 	}
 

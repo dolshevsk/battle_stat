@@ -12,9 +12,10 @@ type Minion struct {
 	IsDivineShield   bool
 	Type             string
 	IsLegendary      bool
-	PreHitEffect     func(Board, uint8) Board
-	PreReceiveEffect func(Board, uint8) Board
-	PostHitEffect    func(Board, uint8) Board
+	Tier             int8
+	PreHitEffect     func(Board, int8) Board
+	PreReceiveEffect func(Board, int8) Board
+	PostHitEffect    func(Board, int8) Board
 	Deathrattles     []Deathrattle
 }
 
